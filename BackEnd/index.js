@@ -5,6 +5,7 @@ const User = require('./models/User');
 const bcrypt = require('bcryptjs');
 const app = express();
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 // USED FOR ENCRYPTING THE PASSWORD FOR USER
 const salt = bcrypt.genSaltSync(10);
@@ -15,6 +16,9 @@ const secret = 'jfajfajfkalfj75nna92h28';
 // USED FOR MAKIG REQUEST FROM ONE SIDE TO OTHER , LIKE FROM CLIENT - SERVER AND VICE VERSA
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
 app.use(express.json());
+
+// USED TO ACCES COOKIES , THAT WE GOT FROM SERVER
+app.use(cookieParser());
 
 // MONGO DB CONNECTION
 mongoose.connect('mongodb+srv://blog:blog@cluster0.cwf9ud0.mongodb.net/?retryWrites=true&w=majority');
@@ -53,4 +57,23 @@ app.post('/login', async (req, res) => {
         res.status(400).json('wrong credentials');
     }
 });
+
+
+// GETTING USER INFO TO CHECK IF USER IS SIGN IN OR NOT USING COOKIE 
+app.get('/profile', (req, res) => {
+    const { token } = req.cookies;
+    jwt.verify(token, secret, {}, (err, info) => {
+        if (err) throw err;
+        res.json(info);
+    });
+    res.json(req.cookies);
+});
+
+
+//  LOGOUT FUNCTIONALITY
+app.post('/logout', (req, res) => {
+    res.cookie('token', '').json('ok');
+});
+
+
 app.listen(4000);
