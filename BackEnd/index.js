@@ -25,6 +25,8 @@ app.use(express.json());
 // USED TO ACCES COOKIES , THAT WE GOT FROM SERVER
 app.use(cookieParser());
 
+app.use('/upload', express.static(__dirname + '/upload'));
+
 // MONGO DB Connection 
 connectDb();
 
@@ -133,22 +135,26 @@ app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
     const newPath = path + '.' + ext;
     fs.renameSync(path, newPath);
 
-    const { title, summary, content } = req.body;
-    const postDoc = await Post.create({
-        title,
-        summary,
-        content,
-        cover: newPath,
-    })
-
-    res.json(postDoc);
+    const { token } = req.cookies;
+    jwt.verify(token, secret, {}, async (err, info) => {
+        if (err) throw err;
+        const { title, summary, content } = req.body;
+        const postDoc = await Post.create({
+            title,
+            summary,
+            content,
+            cover: newPath,
+            author: info.id,
+        });
+        res.json(postDoc);
+    });
 });
 
 
 
 // Displaying single post from the database
 app.get('/post', async (req, res) => {
-    const posts = await Post.find(); //sorting the post in descending order, so latest post shows at the top //limit : Specifies the maximum number of documents the query will return
+    const posts = await Post.find().populate('author', ['username']).sort({ createdAt: -1 }).limit(20); //sorting the post in descending order, so latest post shows at the top //limit : Specifies the maximum number of documents the query will return
     res.json(posts);
 })
 
