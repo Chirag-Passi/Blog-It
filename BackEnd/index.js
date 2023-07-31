@@ -10,12 +10,13 @@ const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const uploadMiddleware = multer({ dest: 'upload/' });
 const fs = require('fs');
+const connectDb = require("./config/db")
 
 // USED FOR ENCRYPTING THE PASSWORD FOR USER
 const salt = bcrypt.genSaltSync(10);
 
 // SECRET KEY FOR COOKIE
-const secret = 'jfajfajfkalfj75nna92h28';
+const secret = 'bhjbdjwj3b34b43bhj42jjsjjhbjdcjwa';
 
 // USED FOR MAKIG REQUEST FROM ONE SIDE TO OTHER , LIKE FROM CLIENT - SERVER AND VICE VERSA
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
@@ -24,9 +25,8 @@ app.use(express.json());
 // USED TO ACCES COOKIES , THAT WE GOT FROM SERVER
 app.use(cookieParser());
 
-// MONGO DB CONNECTION
-mongoose.connect('mongodb+srv://blog:blog@cluster0.cwf9ud0.mongodb.net/?retryWrites=true&w=majority');
-
+// MONGO DB Connection 
+connectDb();
 
 // USER REGISTERATION
 app.post('/register', async (req, res) => {
@@ -48,6 +48,7 @@ app.post('/register', async (req, res) => {
 // USER LOGIN
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
+    console.log(username);
     const userDoc = await User.findOne({ username });
     const passOk = bcrypt.compareSync(password, userDoc.password);
     if (passOk) {
@@ -64,7 +65,47 @@ app.post('/login', async (req, res) => {
         res.status(400).json('wrong credentials');
     }
 });
+// app.post('/register', async (req, res) => {
+//     // console.log(req.body);
+//     const { username, password } = req.body;
+//     try {
+//         // to handle unique users registration, use try-catch
+//         const userDoc = await User.create({
+//             username,
+//             password: bcrypt.hashSync(password, salt),
+//         });
+//         res.json(userDoc);
+//         console.log(userDoc);
+//     } catch (error) {
+//         res.status(400).json(error);
+//     }
 
+// })
+
+
+
+// app.post('/login', async (req, res) => {
+//     const { username, password } = req.body;
+//     const userDoc = await User.findOne({ username: username })
+//     //now to verify the password user is inserting, we need to compare the password that is encrypted by bcrypt and stored in our db(userDoc.password) with the password user is inserting(password)
+//     const passOk = bcrypt.compareSync(password, userDoc.password); // true-if pass matches else false
+//     if (passOk) {
+//         //logged in
+//         jwt.sign({ username, id: userDoc._id }, secret, {}, (err, token) => {
+//             if (err) throw err;
+//             //saving jwt created of user as cookie
+//             res.cookie('token', token).json({
+//                 id: userDoc._id,
+//                 username,
+//             });
+//             //token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InByaXR1IiwiaWQiOiI2NDExYmZhNGZmY2ExNmE1NDQ5NzBjZWQiLCJpYXQiOjE2Nzg4ODgyMDV9.cv4ENQqQPkVCfKVY4P4lbIEmzqZ0q51aemAYakbk_yw; 
+//         });
+
+//     } else {
+//         res.status(404).json('wrong credentials');
+//     }
+
+// })
 
 // GETTING USER INFO TO CHECK IF USER IS SIGN IN OR NOT USING COOKIE 
 app.get('/profile', (req, res) => {
@@ -85,6 +126,7 @@ app.post('/logout', (req, res) => {
 
 // POSTING NEW THREAD & SENDING IT TO DATABASE
 app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
+    console.log("dkkdk")
     const { originalname, path } = req.file;
     const parts = originalname.split('.');
     const ext = parts[parts.length - 1];
@@ -101,5 +143,13 @@ app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
 
     res.json(postDoc);
 });
+
+
+
+// Displaying single post from the database
+app.get('/post', async (req, res) => {
+    const posts = await Post.find(); //sorting the post in descending order, so latest post shows at the top //limit : Specifies the maximum number of documents the query will return
+    res.json(posts);
+})
 
 app.listen(4000);
