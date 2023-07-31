@@ -152,10 +152,17 @@ app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
 
 
 
-// Displaying single post from the database
+// Displaying All post from the Database in Home / Dashboard
 app.get('/post', async (req, res) => {
     const posts = await Post.find().populate('author', ['username']).sort({ createdAt: -1 }).limit(20); //sorting the post in descending order, so latest post shows at the top //limit : Specifies the maximum number of documents the query will return
     res.json(posts);
+})
+
+// Expanding Single Page Post
+app.get('/post/:id', async (req, res) => {
+    const { id } = req.params;
+    const postDoc = await Post.findById(id).populate('author', ['username']);
+    res.json(postDoc);
 })
 
 app.listen(4000);
