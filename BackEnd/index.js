@@ -150,7 +150,66 @@ app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
     });
 });
 
+// UPDATE POST AND SEND BACK TO DATABASE
+// app.put('/post', uploadMiddleware.single('file'), async (req, res) => {
+//     let newPath = null;
+//     if (req.file) {
+//         const { originalname, path } = req.file;
+//         const parts = originalname.split('.');
+//         const ext = parts[parts.length - 1];
+//         const newPath = path + '.' + ext;
+//         fs.renameSync(path, newPath);
+//     }
+//     const { token } = req.cookies;
+//     jwt.verify(token, secret, {}, async (err, info) => {
+//         if (err) throw err;
+//         const { id, title, summary, content } = req.body;
 
+//         const postDoc = await Post.findById(id);
+//         const isAuthor = JSON.stringify(postDoc.author) === JSON.stringify(info.id);
+
+//         if (!isAuthor) {
+//             return res.status(400).json('You are not the author');
+//         }
+//         await postDoc.update({
+//             title,
+//             summary,
+//             content,
+//             cover: newPath ? newPath : postDoc.cover,
+//         });
+//         res.json(postDoc);
+//     });
+// });
+app.put('/post', uploadMiddleware.single('file'), (req, res) => {
+    // res.json({files:req.file});
+    let newPath = null; //if wa have req.file then we will rename it
+    if (req.file) {
+        const { originalname, path } = req.file;
+        const parts = originalname.split('.');
+        const ext = parts[parts.length - 1];
+        newPath = path + '.' + ext;
+        fs.renameSync(path, newPath);
+    }
+    const { token } = req.cookies; // to grab author name from jwt token that is stored in cookie
+    jwt.verify(token, secret, {}, async (err, decodedInfo) => {
+        if (err) throw err;
+        //now we want everything from payload(title,summary,content,file) that is in req.body to store in our db
+        const { title, summary, content, id } = req.body;
+        const postDoc = await Post.findById(id);
+        const isAuthor = JSON.stringify(postDoc.author) === JSON.stringify(decodedInfo.id);
+        if (!isAuthor) {
+            return res.status(400).json('you are not the author');
+        }
+        await postDoc.updateOne({
+            title,
+            summary,
+            content,
+            cover: newPath ? newPath : postDoc.cover,
+        })
+        res.json(postDoc);
+    })
+
+})
 
 // Displaying All post from the Database in Home / Dashboard
 app.get('/post', async (req, res) => {
