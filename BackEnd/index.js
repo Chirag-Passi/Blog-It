@@ -224,4 +224,47 @@ app.get('/post/:id', async (req, res) => {
     res.json(postDoc);
 })
 
+// like a post
+app.put('/likepost', async (req, res) => {
+    const { postId, userId } = req.body;
+    let post1 = await Post.findById(postId).populate('author');
+    let creator = post1.author._id;
+    let creator_likes = post1.author.likes;
+
+    // post details
+    let likeduser = post1.likeduser;
+    let likes = post1.likes;
+
+    let result;
+    // if post has been liked by user then dislike
+    if (likeduser.includes(userId)) {
+        result = await Post.updateMany({ _id: postId },
+            {
+                $pull: { likeduser: { $in: [userId] } },
+                $set: { likes: likes - 1 }
+            })
+        await User.updateMany({ _id: creator },
+            {
+                $set: { likes: creator_likes - 1 }
+            })
+    }
+    // if post has not been liked by user then like it
+    else {
+        result = await Post.updateMany(
+            { _id: postId },
+            {
+                $push: { likeduser: userId },
+                $set: { likes: likes + 1 }
+            })
+        await User.updateMany({ _id: creator },
+            {
+                $set: { likes: creator_likes + 1 }
+            })
+    }
+    let post = await Post.findById(postId);
+    res.json({ result, likeduser, likes, post });
+})
+
 app.listen(4000);
+
+
